@@ -1,4 +1,4 @@
-const version = "v1_0_6";
+const version = "v1_0_7";
 
 class LobbyModel extends Croquet.Model {
   init(options = {}) {
@@ -10,7 +10,6 @@ class LobbyModel extends Croquet.Model {
     this.subscribe(this.sessionId, 'updateModel', this.updateModel);      
   }
   updateModel({userId, roomId}) {
-    console.log('fixme LobbyModel.updateModel', userId, roomId);
     const oldRoomId = this.users[userId];
     if (oldRoomId) {
       if (--this.rooms[oldRoomId] <= 0) {
@@ -26,11 +25,9 @@ class LobbyModel extends Croquet.Model {
     this.publish(this.sessionId, 'updateDisplay');
   }
   join(userId) { // Everyone enters through Lobby.
-    console.log('fixme LobbyModel.join', userId);
     this.updateModel({userId});
   }
   exit(userId) { // Completely exiting the browser tab, from the lobby or any room.
-    console.log('fixme LobbyModel.exit', userId);    
     this.updateModel({userId});
   }
 }
@@ -48,7 +45,6 @@ class LobbyUI extends Croquet.View {
     const templateContent = roomListTemplate.content,
           rooms = this.model.rooms,
           names = Object.keys(rooms).reverse(); // Let's list the newest first.
-    console.log('fixme updateDisplay',  names, JSON.stringify(rooms));
     while (roomList.firstChild) { // roomList.innerHTML = '' would not remove event handlers.
       roomList.removeChild(roomList.firstChild);
     }
@@ -65,7 +61,6 @@ class LobbyUI extends Croquet.View {
     }
   }
   returnToLobby() {
-    console.log('fixme returnToLobby', this.roomSession);
     if (!this.roomSession) return; // old message from an earlier session.
     this.roomSession.leave();
     delete this.roomSession;
@@ -74,7 +69,6 @@ class LobbyUI extends Croquet.View {
     this.roomElement.remove();
   }
   async enterRoom(roomId) {
-    console.log('fixme enterRoom', roomId);
     this.publish(this.sessionId, 'updateModel', {userId: this.viewId, roomId});
     this.lobby.classList.add('hidden');
     // Easist way to maintain rooms is to rebuild them as needed.
@@ -83,7 +77,7 @@ class LobbyUI extends Croquet.View {
     document.getElementById('return').onclick = () => this.returnToLobby();
     document.getElementById('roomLabel').innerHTML = roomId;
     this.roomSession = await joinRoom(roomId);
-    console.log('fixme entered room', roomId, 'session', this.roomSession);
+    location.hash = encodeURIComponent(roomId) || '';
   }
 }
 
@@ -95,5 +89,6 @@ Croquet.Session.join({  // Join the lobby session, which we will be part of the 
   autoSleep: false,
   tps: 2,
   view: LobbyUI
-});
+}).then(lobbySession => location.hash && (location.hash !== '#') &&
+        lobbySession.view.enterRoom(decodeURIComponent(location.hash.replace(/^#/, ''))));
 
