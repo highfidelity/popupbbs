@@ -1,28 +1,34 @@
-const version = "v1_0_7";
+const version = "v1_0_11";
 
 class LobbyModel extends Croquet.Model {
   init(options = {}) {
     super.init(options);
-    this.users = {}; // lobby session user id => room id, so that everyone can lower that count in the lobby when they go offline
-    this.rooms = {}; // room name => concurrency count, for display (and for removing when it goes to zero)
+    this.users = new Map(); // lobby session user id => room id, so that everyone can lower that count in the lobby when they go offline
+    this.rooms = new Map(); // room name => concurrency count, for display (and for removing when it goes to zero)
     this.subscribe(this.sessionId, 'view-join', this.join);
     this.subscribe(this.sessionId, 'view-exit', this.exit);
     this.subscribe(this.sessionId, 'updateModel', this.updateModel);      
   }
   updateModel({userId, roomId}) {
-    const oldRoomId = this.users[userId];
+    const oldRoomId = this.users.get(userId);
     if (oldRoomId) {
-      if (--this.rooms[oldRoomId] <= 0) {
-        delete this.rooms[oldRoomId];
+      if (this.adjustRoom(oldRoomId, -1) <= 0) {
+        this.rooms.delete(oldRoomId);
       }
     }
     if (roomId) {
-      this.users[userId] = roomId;
-      this.rooms[roomId] = (this.rooms[roomId] || 0) + 1;
+      this.users.set(userId, roomId);
+      this.adjustRoom(roomId, 1);
     } else { // Back to lobby.
-      delete this.users[userId]; // Clean up users dictionary.
+      this.users.delete(userId); // Clean up users dictionary.
     }
     this.publish(this.sessionId, 'updateDisplay');
+  }
+  adjustRoom(roomId, increment = 1) {
+    let count = this.rooms.get(roomId) || 0;
+    count += increment;
+    this.rooms.set(roomId, count);
+    return count;
   }
   join(userId) { // Everyone enters through Lobby.
     this.updateModel({userId});
@@ -42,15 +48,11 @@ class LobbyUI extends Croquet.View {
     makeRoomButton.onclick = () => this.enterRoom(newRoomName.value); // No need to make it, just enter.
   }
   updateDisplay() {
-    const templateContent = roomListTemplate.content,
-          rooms = this.model.rooms,
-          names = Object.keys(rooms).reverse(); // Let's list the newest first.
+    const templateContent = roomListTemplate.content;
     while (roomList.firstChild) { // roomList.innerHTML = '' would not remove event handlers.
       roomList.removeChild(roomList.firstChild);
     }
-    for (let name of names) { // TODO: keep this stable instead of flashing during changes. (Add or remove only as needed, and update concurrency.)
-      let concurrency = rooms[name];
-      console.log(name, concurrency);
+    for (let [name, concurrency] of this.model.rooms) { // TODO: keep this stable instead of flashing during changes. (Add or remove only as needed, and update concurrency.)
       if (!concurrency) break;
       let item = templateContent.cloneNode(true).firstElementChild,
           link = item.getElementsByTagName('a')[0];
