@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="./style.css">
+    <script src='https://unpkg.com/@croquet/croquet@0.5'></script>    
+  </head>
+
+  <lobby>
+    <p>Pick a room, or make your own.</p>
+    <p><i>This currently uses the internet rather than a local network. So the rooms shown are those occupied anywhere in the world.</i></p>
+    <div id="roomList"></div>
+    <div>
+      <input id="newRoomName" type="text" onkeydown="event.keyCode == 13 && makeRoomButton.onclick()"/>
+      <input id="makeRoomButton" type="button" value = "Send"/>
+    </div>
+  </lobby>
+
+  <template id="roomListTemplate">
+    <div>
+      <a href="#">airport</a>
+      <concurrency>0</concurrency> currently
+    </div>
+  </template>
+
+  <template id="roomTemplate">
+    <div id="chat">
+      <div id="infobar">
+        <div id="nickname">name</div>
+        <div id="viewCount"><b>in <span id="roomLabel">room</span></b> <span id="roomCount">0</span>, <a id="return" href="#">return to lobby</a></div>
+      </div>
+      <div id="textOut"></div>
+      <input id="textIn" type="text" onkeydown="event.keyCode == 13 && sendButton.onclick()"/>
+      <input id="sendButton" type="button" value = "Send" />
+    </div>
+  </template>
+
+  <script src='lobby.js'></script>
+  <script src='room.js'></script>
+</body>
+</html>
